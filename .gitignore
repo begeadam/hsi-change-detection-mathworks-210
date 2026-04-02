@@ -1,0 +1,7 @@
+# Ignore the massive 20GB dataset directory and any raw TIFF/PNG images
+Onera Satellite Change Detection dataset - Images/
+
+# Ignore old MATLAB crash files or temp files
+*.asv
+*.m~
+*.mat

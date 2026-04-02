@@ -6,11 +6,11 @@
 This repository contains the solution for the **MATLAB and Simulink Challenge Project Hub** task: [Change Detection in Hyperspectral Imagery (Project #210)](https://github.com/mathworks/MATLAB-Simulink-Challenge-Project-Hub/tree/main/projects/Change%20Detection%20in%20Hyperspectral%20Imagery).
 
 ## 🚀 Overview
-Detecting changes on the Earth's surface between two hyperspectral/multispectral images taken at different times is critical for disaster management and urban tracking. This project proposes a **Machine Learning-driven (Random Forest)** approach leveraging the native **Image Processing Toolbox™ Hyperspectral Imaging Library** to overcome drastic phenological (seasonal) changes, mixed pixels, and global illumination shifts.
+Detecting changes on the Earth's surface between two hyperspectral/multispectral images taken at different times is critical for urban sprawl tracking and environmental monitoring. This project proposes a **Machine Learning-driven (Random Forest)** approach leveraging the native **Image Processing Toolbox™ Hyperspectral Imaging Library** to overcome drastic phenological (seasonal) changes, mixed pixels, and global illumination shifts.
 
 ## 🎯 Project Impact & Objectives
-- **Problem:** Disaster response delays due to slow manual change detection.
-- **Impact:** Automate hyperspectral change detection to save lives, allocate resources, and track urban development rapidly.
+- **Problem:** Slow manual tracking of rapid urban sprawl, new constructions, and infrastructural changes.
+- **Impact:** Automate hyperspectral change detection to track urban development, illegal constructions, and environmental alterations efficiently.
 - **Expertise Gained:** Machine Learning, Hyperspectral Imaging, Image Processing, Spectral Angle Mapping (SAM), Random Forests.
 
 ## 📖 Algorithm Overview

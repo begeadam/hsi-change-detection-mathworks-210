@@ -8,10 +8,13 @@ This repository contains the solution for the **MATLAB and Simulink Challenge Pr
 ## 🚀 Overview
 Detecting changes on the Earth's surface between two hyperspectral/multispectral images taken at different times is critical for disaster management and urban tracking. This project proposes a **Machine Learning-driven (Random Forest)** approach leveraging the native **Image Processing Toolbox™ Hyperspectral Imaging Library** to overcome drastic phenological (seasonal) changes, mixed pixels, and global illumination shifts.
 
-Instead of classical thresholding, this pipeline incorporates a robust 17-dimensional feature space—utilizing spatial variances (`stdfilt`), NDVI/NDWI shifts, and Spectral Angle Mapping (SAM)—to create a highly resilient Change Detection classifier.
+## 🎯 Project Impact & Objectives
+- **Problem:** Disaster response delays due to slow manual change detection.
+- **Impact:** Automate hyperspectral change detection to save lives, allocate resources, and track urban development rapidly.
+- **Expertise Gained:** Machine Learning, Hyperspectral Imaging, Image Processing, Spectral Angle Mapping (SAM), Random Forests.
 
-## ✨ Key Features & Methodology
-Our approach successfully addresses the challenge's core problems:
+## 📖 Algorithm Overview
+Instead of classical thresholding, this pipeline incorporates a robust 17-dimensional feature space to create a highly resilient Change Detection classifier. Our approach successfully addresses the challenge's core problem:
 1. **Multiple Changes & Mixed Pixels:** A Random Forest classifier trained on a strictly balanced subset of pixels separates true urbanization from mere agricultural harvests using local standard deviation (texture) metrics.
 2. **Hyperspectral Engine:** Images are constructed as `hypercube` objects, matching the dataset wavelengths to strictly adhere to the Hyperspectral Imaging architecture recommendations.
 3. **Radiometric Harmonization:** Phase 1 implements exact `imhistmatch` to align the baseline reflectance properties of T2 to T1, severely dampening light-angle distortions.
@@ -22,16 +25,14 @@ Our approach successfully addresses the challenge's core problems:
    - Explicit channel-wise spectral differences (10 native bands)
    - Computed spatial texture and advanced indices (`NDVI`, `NDWI` deltas)
 
----
-
 ## 📂 Repository Structure
 ```text
 ├── src/
 │   └── unified_hsi_pipeline.m    # The main, self-contained MATLAB script
-├── README.md
-└── LICENSE
+├── README.md                     # Project documentation
+└── LICENSE                       # MIT License
 ```
-*(Note: The actual Onera dataset is ignored via `.gitignore` to prevent massive uploads.)*
+*(Note: The actual dataset is ignored via `.gitignore` to prevent massive uploads.)*
 
 ## 📥 Dataset & Installation
 
@@ -52,13 +53,19 @@ Open MATLAB, set your working directory to the project root, and execute:
 ```matlab
 run('src/unified_hsi_pipeline.m')
 ```
-The script will automatically parse through the 14 training cities to train the feature-extractor RF model, and output the F1-Score metrics across the test validation cities (e.g., Las Vegas, Dubai, Milano).
 
 ## 📊 Results Summary
-By utilizing robust index differences (NDVI) and spatial textures, the algorithm perfectly minimizes seasonal agricultural noise while keeping building mapping tight:
+By utilizing robust index differences (NDVI) and spatial textures, the algorithm minimizes seasonal agricultural noise while keeping building mapping tight:
 - **Las Vegas:** 0.69 F1-Score (Extreme urban construction mapped almost perfectly against bare sand)
 - **Dubai:** 0.49 F1-Score
 - **Milano:** 0.26 F1-Score *(A significant achievement over classical PCA/K-Means that severely failed due to cloud and localized Phenology).*
+
+## 🔬 Limitations & Future Work
+- Mixed pixel challenges are still present in very heterogeneous or agriculture-heavy terrains (e.g., Valencia).
+- Future work: Extend the pipeline to 3D CNN models or Transformers for significantly better spatial-temporal consistency.
+
+## 🤝 Contributing
+Contributions are welcome! Feel free to open an Issue or submit a Pull Request if you have ideas on improving the feature extractor or adding new deep learning backends.
 
 ## 📝 License
 This project is licensed under the MIT License - see the LICENSE file for details.

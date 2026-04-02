@@ -32,6 +32,7 @@ Instead of classical thresholding, this pipeline incorporates a robust 17-dimens
 ```text
 ├── src/
 │   └── unified_hsi_pipeline.m    # The main, self-contained MATLAB script
+│   └── HSI.mlx                   # A live script for interactive use 
 ├── README.md                     # Project documentation
 └── LICENSE                       # MIT License
 ```

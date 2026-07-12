@@ -8,8 +8,10 @@ This repository contains my final university project for the MATLAB course. The 
 ## 🌍 Motivation & Background
 For our final MATLAB course project, we were given a list of topics to choose from. I selected this specific project because of my strong interest in space engineering, particularly satellite imagery and ground mapping. Having recently discovered the innovative work of Earth observation companies like Planet Labs, I was highly motivated to learn how to apply MATLAB to real-world remote sensing problems.
 
-## 🚀 Overview
-Detecting changes on the Earth's surface between two hyperspectral/multispectral images taken at different times is critical for urban sprawl tracking and environmental monitoring. This project proposes a **Machine Learning-driven (Random Forest)** approach to overcome drastic phenological (seasonal) changes, mixed pixels, and global illumination shifts, using pure matrix operations without relying on heavily specialized external toolboxes.
+## 🚀 Overview (V2 Update)
+Detecting changes on the Earth's surface between two hyperspectral/multispectral images taken at different times is critical for urban sprawl tracking and environmental monitoring. This project proposes a **Machine Learning-driven (Random Forest)** approach to overcome drastic phenological (seasonal) changes, mixed pixels, and global illumination shifts. 
+
+**V2 Major Updates:** The pipeline now strictly adheres to MathWorks' official standards by integrating the **Hyperspectral Imaging Library**. It introduces Spectral Unmixing (N-FINDR + FCLS) to handle mixed pixels and features a **Hierarchical Spectral Analysis** module that automatically categorizes the detected changes into dynamic sub-types (e.g., vegetation loss, construction).
 
 ## 🎯 Project Impact & Objectives
 - **Problem:** Slow manual tracking of rapid urban sprawl, new constructions, and infrastructural changes.
@@ -17,22 +19,26 @@ Detecting changes on the Earth's surface between two hyperspectral/multispectral
 - **Expertise Gained:** Machine Learning, Remote Sensing, Image Processing, Spectral Angle Mapping (SAM), Random Forests.
 
 ## 📖 Algorithm Overview
-Instead of classical thresholding, this pipeline incorporates a robust 17-dimensional feature space to create a highly resilient Change Detection classifier. Our approach successfully addresses the core problems:
-1. **Multiple Changes & Mixed Pixels:** A Random Forest classifier trained on a strictly balanced subset of pixels separates true urbanization from mere agricultural harvests using local standard deviation (texture) metrics.
-2. **Matrix-Based Engine:** To maximize compatibility, images are processed as raw 3D Data Cubes, bypassing the need for the specialized Hyperspectral Imaging Toolbox while maintaining spectral integrity.
+Instead of classical thresholding, this pipeline incorporates a robust 22-dimensional feature space to create a highly resilient Change Detection classifier. Our approach successfully addresses the core problems:
+1. **Multiple Changes & Mixed Pixels (Spectral Unmixing):** A Random Forest classifier trained on a strictly balanced subset of pixels separates true urbanization from mere agricultural harvests using local standard deviation (texture) metrics. We also extract 5 endmembers via N-FINDR and compute Fully Constrained Least Squares (FCLS) abundances to solve mixed-pixel distortions.
+2. **Library-Native Engine:** Images are processed natively using the `hypercube` class. Native toolbox functions (`sam`, `ndvi`, `nfindr`, `estimateAbundanceLS`) are heavily utilized.
 3. **Radiometric Harmonization:** Phase 1 implements exact `imhistmatch` to align the baseline reflectance properties of T2 to T1, severely dampening light-angle distortions.
-4. **17-Feature Data Cube:** For each pixel, the model computes:
+4. **22-Feature Data Cube:** For each pixel, the model computes:
    - Absolute PCA mappings
-   - Spectral Angle Mapper (SAM) arrays
+   - Spectral Angle Mapper (SAM) difference map
    - Structural Fusion maps
    - Explicit channel-wise spectral differences (10 native Sentinel-2 bands)
    - Computed spatial texture and advanced indices (`NDVI`, `NDWI` deltas)
+   - Endmember abundance differences (5 dimensions)
+5. **Hierarchical Categorization:** Post-classification, the changed pixels undergo K-Means and Ward's Hierarchical Clustering. The `evalclusters` function dynamically selects the optimal number of change types using the Calinski-Harabasz index.
 
 ## 📂 Repository Structure
 ```text
-├── src/
-│   └── unified_hsi_pipeline.m    # The main, self-contained MATLAB script
-│   └── HSI.mlx                   # A live script for interactive use 
+├── unified_hsi_pipeline_V2.m     # The main V2 MATLAB script
+├── unified_hsi_pipeline.m        # Legacy V1 pipeline
+├── HSI.mlx                       # A live script for interactive use 
+├── Review.md                     # Code review and task assignments
+├── results/                      # Output directory for change category maps
 ├── README.md                     # Project documentation
 └── LICENSE                       # MIT License
 ```
@@ -54,8 +60,9 @@ Ensure you have MATLAB installed alongside the following core toolboxes:
 ### 3. Run the Pipeline
 Open MATLAB, set your working directory to the project root, and execute:
 ```matlab
-run('src/unified_hsi_pipeline.m')
+run('unified_hsi_pipeline_V2.m')
 ```
+*Note: The script caches the trained Random Forest into `RF_Model.mat` to drastically speed up future executions.*
 
 ## 📊 Results Summary
 By utilizing robust index differences (NDVI) and spatial textures, the algorithm minimizes seasonal agricultural noise while keeping building mapping tight. Results on the test sets:

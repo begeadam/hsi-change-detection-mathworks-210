@@ -20,8 +20,8 @@ clear; clc;
 %  CONFIGURATION
 %  ========================================================================
 NUM_ENDMEMBERS = 5;       % Fixed number of endmembers for spectral unmixing
-NUM_RF_TREES   = 50;      % Number of trees in the Random Forest
-NUM_FEATURES   = 22;      % Total feature dimensions (17 original + 5 abundance diffs)
+NUM_RF_TREES   = 150;     % Number of trees in the Random Forest (increased for better generalization)
+NUM_FEATURES   = 23;      % Total feature dimensions (17 original + 5 abundance + 1 RX anomaly)
 EXPECTED_BANDS = 10;      % Expected number of Sentinel-2 spectral bands
 
 % Sentinel-2 band central wavelengths (nm) for hypercube construction
@@ -168,12 +168,18 @@ for i = 1:length(testCities)
     
     % Execute predictions using the trained Random Forest model
     X_test = reshape(featureCube, H*W, NUM_FEATURES);
-    [predStr, ~] = predict(RF_Model, X_test);
+    [predStr, scores] = predict(RF_Model, X_test);
     predMask = reshape(str2double(predStr), H, W);
     
-    % Morphological Post-Processing: remove salt-and-pepper noise
-    predMask = medfilt2(predMask, [5 5]);
-    predMask = bwareaopen(predMask, 20);
+    % Confidence filtering: only accept changes with >60% RF confidence
+    changeClassIdx = find(strcmp(RF_Model.ClassNames, '1'));
+    confidenceMap = reshape(scores(:, changeClassIdx), H, W);
+    CONFIDENCE_THRESHOLD = 0.60;
+    predMask(confidenceMap < CONFIDENCE_THRESHOLD) = 0;
+    
+    % Morphological Post-Processing: remove salt-and-pepper noise (softened)
+    predMask = medfilt2(predMask, [3 3]);
+    predMask = bwareaopen(predMask, 15);
     
     % Compute Standard Evaluation Metrics
     TP = sum(predMask(:) & gt_bin(:));
@@ -256,15 +262,17 @@ function [features, H, W] = process_city_features(cityName, wavelengths, ...
 %   Phases:
 %     1A - Radiometric Harmonization (histogram matching T2 -> T1)
 %     1B - Spatial Co-registration (PCA-based translation alignment)
-%     2A - PCA Difference Map
+%     1C - MNF Noise Reduction (safe mode: used for PCA only)
+%     2A - PCA Difference Map (MNF-denoised)
 %     2B - Spectral Angle Mapper (SAM) via Hyperspectral Imaging Library
 %     2C - Structural Fusion Map (PCA + SAM)
 %     2D - NDVI / NDWI via Hyperspectral Imaging Library
 %     2E - Contextual Texture Features
 %     2F - Spectral Unmixing (endmember extraction + abundance mapping)
+%     2G - RX Anomaly Detection
 %
-%   Output feature vector per pixel (22 dimensions):
-%     [1]      PCA difference map
+%   Output feature vector per pixel (23 dimensions):
+%     [1]      PCA difference map (MNF-denoised)
 %     [2]      SAM difference map
 %     [3]      Fusion map (PCA + SAM)
 %     [4:13]   Signed spectral difference per band (10 bands)
@@ -272,6 +280,7 @@ function [features, H, W] = process_city_features(cityName, wavelengths, ...
 %     [15]     NDWI difference
 %     [16:17]  Contextual texture features
 %     [18:22]  Endmember abundance differences (5 endmembers)
+%     [23]     RX Anomaly difference
 
     baseDir = 'Onera Satellite Change Detection dataset - Images';
     bandList = {'B01.tif', 'B02.tif', 'B03.tif', 'B04.tif', 'B05.tif', ...
@@ -351,10 +360,31 @@ function [features, H, W] = process_city_features(cityName, wavelengths, ...
     hcube_T2_reg  = hypercube(Cube_T2_Reg, wavelengths);
     
     % =====================================================================
-    %  PHASE 2A: PCA Difference Map
+    %  PHASE 1C: MNF Noise Reduction (Safe Mode)
     % =====================================================================
-    diffCube = abs(Cube_T1_Corr - Cube_T2_Reg);
-    X_Diff = reshape(diffCube, H*W, B);
+    % Apply Minimum Noise Fraction to separate signal from noise.
+    % Safe mode: MNF output is used ONLY for the PCA difference map.
+    % All index computations (NDVI, NDWI, texture, SAM) use original bands.
+    try
+        numMNFComp = min(8, B);  % Keep top 8 components (discard noisy tail)
+        mnfData_T1 = hypermnf(Cube_T1_Corr, numMNFComp);
+        mnfData_T2 = hypermnf(Cube_T2_Reg, numMNFComp);
+        useMNF = true;
+    catch mnfErr
+        fprintf('    MNF skipped (%s), using raw bands for PCA.\n', mnfErr.message);
+        useMNF = false;
+    end
+    
+    % =====================================================================
+    %  PHASE 2A: PCA Difference Map (MNF-denoised when available)
+    % =====================================================================
+    if useMNF
+        diffCube_pca = abs(mnfData_T1 - mnfData_T2);
+        X_Diff = reshape(diffCube_pca, H*W, numMNFComp);
+    else
+        diffCube_pca = abs(Cube_T1_Corr - Cube_T2_Reg);
+        X_Diff = reshape(diffCube_pca, H*W, B);
+    end
     [~, scoreDiff] = pca(X_Diff, 'NumComponents', 1);
     pcaMapRaw = abs(reshape(scoreDiff(:,1), H, W));
     
@@ -442,14 +472,25 @@ function [features, H, W] = process_city_features(cityName, wavelengths, ...
     abundanceDiff = abs(abundance_T1 - abundance_T2);
     
     % =====================================================================
+    %  PHASE 2G: RX Anomaly Detection (Toolbox Function)
+    % =====================================================================
+    % Reed-Xiaoli (RX) detector highlights pixels that are spectrally
+    % anomalous relative to their local neighborhood. Excellent for
+    % detecting new constructions and rare surface changes.
+    rxMap_T1 = anomalyRX(hcube_T1_corr);
+    rxMap_T2 = anomalyRX(hcube_T2_reg);
+    rxDiff = abs(rxMap_T2 - rxMap_T1);
+    rxDiff = (rxDiff - min(rxDiff(:))) / (max(rxDiff(:)) - min(rxDiff(:)) + eps);
+    
+    % =====================================================================
     %  PHASE 3: Signed Spectral Difference (10 bands)
     % =====================================================================
     diffCubeSigned = Cube_T2_Reg - Cube_T1_Corr;
     
     % =====================================================================
-    %  AGGREGATE: Build the 22-Dimensional Feature Vector
+    %  AGGREGATE: Build the 23-Dimensional Feature Vector
     % =====================================================================
-    numFeatures = 17 + numEndmembers;  % 17 original + endmember abundances
+    numFeatures = 17 + numEndmembers + 1;  % 17 original + 5 abundance + 1 RX
     features = zeros(H, W, numFeatures);
     
     features(:,:,1)     = pcaMap;
@@ -461,6 +502,7 @@ function [features, H, W] = process_city_features(cityName, wavelengths, ...
     features(:,:,16)    = texture_T1;                % Spatial texture T1
     features(:,:,17)    = texture_Diff;              % Spatial texture change
     features(:,:,18:17+numEndmembers) = abundanceDiff;  % Unmixing features
+    features(:,:,18+numEndmembers)    = rxDiff;      % RX Anomaly difference
 end
 
 

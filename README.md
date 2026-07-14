@@ -50,12 +50,33 @@ Instead of classical thresholding, this pipeline incorporates a robust 22-dimens
 This project was benchmarked on the **ONERA Satellite Change Detection Dataset (OSCD)**. 
 Due to storage constraints, the dataset is **not included** in this repository. 
 - Download the dataset from [IEEE DataPort](https://ieee-dataport.org/open-access/oscd-onera-satellite-change-detection).
-- Extract the files so that the `Onera Satellite Change Detection dataset - Images` folder is placed directly in the repository's root alongside the `src` folder.
+- Extract the files so that the following folder structure is created in the project root:
+
+```text
+Project_Root/
+├── Onera Satellite Change Detection dataset - Images/
+│   ├── train.txt
+│   ├── test.txt
+│   ├── aguasclaras/
+│   │   ├── imgs_1_rect/    ← Contains B01.tif .. B09.tif (Time 1)
+│   │   └── imgs_2_rect/    ← Contains B01.tif .. B09.tif (Time 2)
+│   ├── dubai/
+│   │   ├── imgs_1_rect/
+│   │   └── imgs_2_rect/
+│   ├── ... (other cities)
+│   ├── Onera Satellite Change Detection dataset - Train Labels/
+│   │   └── <city>/cm/cm.png
+│   └── Onera Satellite Change Detection dataset - Test Labels/
+│       └── <city>/cm/cm.png
+├── unified_hsi_pipeline_V2.m
+└── ...
+```
 
 ### 2. Set Up the Environment
-Ensure you have MATLAB installed alongside the following core toolboxes:
+Ensure you have MATLAB (R2023b or later) installed alongside the following toolboxes:
 - Image Processing Toolbox
 - Statistics and Machine Learning Toolbox
+- **Image Processing Toolbox Hyperspectral Imaging Library** (Install via MATLAB Add-On Explorer)
 
 ### 3. Run the Pipeline
 Open MATLAB, set your working directory to the project root, and execute:

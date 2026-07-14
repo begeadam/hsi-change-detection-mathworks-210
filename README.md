@@ -36,7 +36,6 @@ Instead of classical thresholding, this pipeline incorporates a robust 22-dimens
 ```text
 ├── unified_hsi_pipeline_V2.m     # The main V2 MATLAB script
 ├── unified_hsi_pipeline.m        # Legacy V1 pipeline
-├── HSI.mlx                       # A live script for interactive use 
 ├── Review.md                     # Code review and task assignments
 ├── results/                      # Output directory for change category maps
 ├── README.md                     # Project documentation
